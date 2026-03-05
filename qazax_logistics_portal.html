@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qazax Strateji Logistika Portalı</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 320px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(94, 234, 212, 0.2);
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #0ea5e9;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(90deg, #0ea5e9, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #0ea5e9;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layer-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .layer-btn {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+            color: #e2e8f0;
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .layer-btn:hover {
+            background: rgba(14, 165, 233, 0.2);
+            border-color: #0ea5e9;
+            transform: translateX(5px);
+        }
+
+        .layer-btn.active {
+            background: linear-gradient(90deg, #0ea5e9, #059669);
+            border-color: transparent;
+        }
+
+        .layer-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .business { background: #f59e0b; }
+        .application { background: #3b82f6; }
+        .technology { background: #10b981; }
+        .physical { background: #8b5cf6; }
+
+        .stats-panel {
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        .stat-value {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        /* 3D Viewport */
+        #viewport {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Overlay UI */
+        .overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(94, 234, 212, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            min-width: 250px;
+        }
+
+        .overlay h3 {
+            color: #0ea5e9;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(94, 234, 212, 0.2);
+        }
+
+        .control-btn {
+            background: transparent;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(14, 165, 233, 0.2);
+            border-color: #0ea5e9;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            display: none;
+            border: 1px solid #0ea5e9;
+            z-index: 1000;
+        }
+
+        /* Loading Screen */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(14, 165, 233, 0.3);
+            border-top-color: #0ea5e9;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #0ea5e9;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        <div class="loader"></div>
+        <div class="loading-text">QAZAX LOGISTIKA PORTALI YÜKLƏNİR...</div>
+    </div>
+
+    <div id="container">
+        <div id="sidebar">
+            <div class="logo">
+                <h1>QAZAX LOGISTIKA</h1>
+                <p>Strateji Planlaşdırma Portalı</p>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span>🏗️</span> Enterprise Architecture Qatları
+                </div>
+                <div class="layer-controls">
+                    <button class="layer-btn active" data-layer="business">
+                        <div class="layer-icon business">B</div>
+                        Biznes Qatı
+                    </button>
+                    <button class="layer-btn active" data-layer="application">
+                        <div class="layer-icon application">A</div>
+                        Tətbiq Qatı
+                    </button>
+                    <button class="layer-btn active" data-layer="technology">
+                        <div class="layer-icon technology">T</div>
+                        Texnoloji Qat
+                    </button>
+                    <button class="layer-btn active" data-layer="physical">
+                        <div class="layer-icon physical">P</div>
+                        Fiziki Qat (3D)
+                    </button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span>📊</span> Regional Analiz
+                </div>
+                <div class="stats-panel">
+                    <div class="stat-item">
+                        <span>Ərazi:</span>
+                        <span class="stat-value">Qazax Rayonu</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Strateji mövqe:</span>
+                        <span class="stat-value">Şərq-Qərb dəhlizi</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Anbar tutumu:</span>
+                        <span class="stat-value">50,000 m²</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Gündəlik yük dövriyyəsi:</span>
+                        <span class="stat-value">1,200 t</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>İşçi sayı:</span>
+                        <span class="stat-value">450 nəfər</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    <span>🚛</span> Simulyasiya
+                </div>
+                <button class="layer-btn" id="simulateTraffic" style="margin-bottom: 10px;">
+                    <div class="layer-icon" style="background: #ef4444;">▶</div>
+                    Nəqliyyat Axını
+                </button>
+                <button class="layer-btn" id="optimizeRoute">
+                    <div class="layer-icon" style="background: #8b5cf6;">⚡</div>
+                    Marşrut Optimallaşdırma
+                </button>
+            </div>
+        </div>
+
+        <div id="viewport">
+            <div id="canvas-container"></div>
+
+            <div class="overlay">
+                <h3>Seçilmiş Obyekt</h3>
+                <div id="objectInfo">
+                    <div class="info-item">
+                        <span>Tip:</span>
+                        <span id="infoType">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span>Status:</span>
+                        <span id="infoStatus">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span>Tutum:</span>
+                        <span id="infoCapacity">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn" id="resetView">Reset Kamera</button>
+                <button class="control-btn" id="toggleDayNight">Gecə/Gündüz</button>
+                <button class="control-btn" id="toggleTraffic">Yük Axını</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Three.js Setup
+        let scene, camera, renderer, controls;
+        let raycaster, mouse;
+        let selectedObject = null;
+        let trafficParticles = [];
+        let isNight = false;
+        let animationId;
+
+        // Layer groups
+        const layers = {
+            business: new THREE.Group(),
+            application: new THREE.Group(),
+            technology: new THREE.Group(),
+            physical: new THREE.Group()
+        };
+
+        // Initialize
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.Fog(0x0f172a, 50, 200);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(80, 60, 80);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2.2;
+            controls.minDistance = 20;
+            controls.maxDistance = 150;
+
+            // Lighting
+            setupLighting();
+
+            // Build Scene
+            buildLogisticsCenter();
+
+            // Add layers to scene
+            Object.values(layers).forEach(layer => scene.add(layer));
+
+            // Raycaster
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('click', onClick);
+
+            // Remove loading screen
+            setTimeout(() => {
+                document.getElementById('loading').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }, 500);
+            }, 1500);
+
+            animate();
+        }
+
+        function setupLighting() {
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+            dirLight.position.set(50, 100, 50);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.left = -50;
+            dirLight.shadow.camera.right = 50;
+            dirLight.shadow.camera.top = 50;
+            dirLight.shadow.camera.bottom = -50;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            // Night lights (initially off)
+            const pointLight1 = new THREE.PointLight(0x0ea5e9, 0, 30);
+            pointLight1.position.set(0, 10, 0);
+            pointLight1.name = 'nightLight';
+            scene.add(pointLight1);
+        }
+
+        function buildLogisticsCenter() {
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x1e293b,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Grid
+            const gridHelper = new THREE.GridHelper(200, 40, 0x0ea5e9, 0x334155);
+            gridHelper.position.y = 0.1;
+            scene.add(gridHelper);
+
+            // === PHYSICAL LAYER (3D Buildings) ===
+
+            // Main Warehouse
+            const warehouseGeo = new THREE.BoxGeometry(40, 15, 25);
+            const warehouseMat = new THREE.MeshStandardMaterial({ 
+                color: 0x3b82f6,
+                transparent: true,
+                opacity: 0.9
+            });
+            const warehouse = new THREE.Mesh(warehouseGeo, warehouseMat);
+            warehouse.position.set(0, 7.5, 0);
+            warehouse.castShadow = true;
+            warehouse.receiveShadow = true;
+            warehouse.userData = { 
+                type: 'Ana Anbar', 
+                layer: 'physical',
+                capacity: '25,000 m²',
+                status: 'Aktiv'
+            };
+            layers.physical.add(warehouse);
+
+            // Warehouse Details
+            const doorGeo = new THREE.BoxGeometry(8, 6, 1);
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+            const door = new THREE.Mesh(doorGeo, doorMat);
+            door.position.set(0, 3, 12.5);
+            layers.physical.add(door);
+
+            // Secondary Warehouse
+            const warehouse2Geo = new THREE.BoxGeometry(25, 12, 20);
+            const warehouse2Mat = new THREE.MeshStandardMaterial({ 
+                color: 0x10b981,
+                transparent: true,
+                opacity: 0.9
+            });
+            const warehouse2 = new THREE.Mesh(warehouse2Geo, warehouse2Mat);
+            warehouse2.position.set(-35, 6, 10);
+            warehouse2.castShadow = true;
+            warehouse2.userData = { 
+                type: 'Soyutma Anbarı', 
+                layer: 'physical',
+                capacity: '10,000 m²',
+                status: 'Aktiv'
+            };
+            layers.physical.add(warehouse2);
+
+            // Administrative Building
+            const adminGeo = new THREE.BoxGeometry(15, 8, 10);
+            const adminMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+            const admin = new THREE.Mesh(adminGeo, adminMat);
+            admin.position.set(30, 4, -20);
+            admin.castShadow = true;
+            admin.userData = { 
+                type: 'İnzibati Bina', 
+                layer: 'physical',
+                capacity: '200 işçi',
+                status: 'Aktiv'
+            };
+            layers.physical.add(admin);
+
+            // Loading Docks
+            for (let i = -15; i <= 15; i += 10) {
+                const dockGeo = new THREE.BoxGeometry(6, 1, 4);
+                const dockMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+                const dock = new THREE.Mesh(dockGeo, dockMat);
+                dock.position.set(i, 0.5, 15);
+                dock.userData = { type: 'Yükləmə Platforması', layer: 'physical' };
+                layers.physical.add(dock);
+            }
+
+            // Roads
+            const roadGeo = new THREE.PlaneGeometry(200, 10);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+
+            const road1 = new THREE.Mesh(roadGeo, roadMat);
+            road1.rotation.x = -Math.PI / 2;
+            road1.position.set(0, 0.05, 30);
+            layers.physical.add(road1);
+
+            const road2 = new THREE.Mesh(roadGeo, roadMat);
+            road2.rotation.x = -Math.PI / 2;
+            road2.rotation.z = Math.PI / 2;
+            road2.position.set(-50, 0.05, 0);
+            layers.physical.add(road2);
+
+            // === TECHNOLOGY LAYER ===
+
+            // Server Room (underground representation)
+            const serverGeo = new THREE.BoxGeometry(10, 3, 8);
+            const serverMat = new THREE.MeshStandardMaterial({ 
+                color: 0x10b981,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.6
+            });
+            const server = new THREE.Mesh(serverGeo, serverMat);
+            server.position.set(20, -2, -10);
+            server.userData = { 
+                type: 'Server Otağı', 
+                layer: 'technology',
+                status: 'Onlayn'
+            };
+            layers.technology.add(server);
+
+            // Network Lines
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0x10b981, linewidth: 2 });
+            const points = [];
+            points.push(new THREE.Vector3(20, 0, -10));
+            points.push(new THREE.Vector3(0, 7.5, 0));
+            points.push(new THREE.Vector3(-35, 6, 10));
+            points.push(new THREE.Vector3(30, 4, -20));
+
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+            const networkLine = new THREE.Line(lineGeometry, lineMaterial);
+            layers.technology.add(networkLine);
+
+            // === APPLICATION LAYER ===
+
+            // Software Modules (floating icons)
+            const modules = [
+                { pos: [-20, 20, -20], name: 'WMS', color: 0x3b82f6 },
+                { pos: [0, 25, -20], name: 'ERP', color: 0x8b5cf6 },
+                { pos: [20, 20, -20], name: 'TMS', color: 0xf59e0b },
+                { pos: [-10, 30, 0], name: 'CRM', color: 0xec4899 }
+            ];
+
+            modules.forEach(mod => {
+                const sphereGeo = new THREE.SphereGeometry(3, 32, 32);
+                const sphereMat = new THREE.MeshStandardMaterial({ 
+                    color: mod.color,
+                    emissive: mod.color,
+                    emissiveIntensity: 0.5,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+                sphere.position.set(...mod.pos);
+                sphere.userData = { 
+                    type: mod.name + ' Sistemi', 
+                    layer: 'application',
+                    status: 'Aktiv'
+                };
+                layers.application.add(sphere);
+
+                // Connection lines to ground
+                const linePoints = [
+                    new THREE.Vector3(mod.pos[0], mod.pos[1] - 3, mod.pos[2]),
+                    new THREE.Vector3(mod.pos[0], 0, mod.pos[2])
+                ];
+                const connGeo = new THREE.BufferGeometry().setFromPoints(linePoints);
+                const connLine = new THREE.Line(connGeo, new THREE.LineBasicMaterial({ 
+                    color: mod.color, 
+                    transparent: true, 
+                    opacity: 0.3 
+                }));
+                layers.application.add(connLine);
+            });
+
+            // === BUSINESS LAYER ===
+
+            // Process flows
+            const processColors = [0xf59e0b, 0xef4444, 0x10b981];
+            const processes = [
+                { start: [-50, 5, 30], end: [0, 5, 15], name: 'Daxilolma' },
+                { start: [0, 5, 15], end: [0, 5, 0], name: 'Saxlama' },
+                { start: [0, 5, 0], end: [50, 5, 30], name: 'Çatdırılma' }
+            ];
+
+            processes.forEach((proc, idx) => {
+                const curve = new THREE.QuadraticBezierCurve3(
+                    new THREE.Vector3(...proc.start),
+                    new THREE.Vector3(
+                        (proc.start[0] + proc.end[0]) / 2,
+                        10,
+                        (proc.start[2] + proc.end[2]) / 2
+                    ),
+                    new THREE.Vector3(...proc.end)
+                );
+
+                const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.5, 8, false);
+                const tubeMat = new THREE.MeshStandardMaterial({ 
+                    color: processColors[idx],
+                    transparent: true,
+                    opacity: 0.6
+                });
+                const tube = new THREE.Mesh(tubeGeo, tubeMat);
+                tube.userData = { 
+                    type: 'Proses: ' + proc.name, 
+                    layer: 'business',
+                    status: 'Aktiv'
+                };
+                layers.business.add(tube);
+            });
+        }
+
+        // Traffic Simulation
+        function createTraffic() {
+            const truckGeo = new THREE.BoxGeometry(4, 2.5, 2);
+            const truckMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+
+            for (let i = 0; i < 10; i++) {
+                const truck = new THREE.Mesh(truckGeo, truckMat);
+                truck.position.set(
+                    -80 + Math.random() * 160,
+                    1.25,
+                    30 + (Math.random() - 0.5) * 5
+                );
+                truck.userData = { 
+                    speed: 0.2 + Math.random() * 0.3,
+                    direction: Math.random() > 0.5 ? 1 : -1
+                };
+                trafficParticles.push(truck);
+                scene.add(truck);
+            }
+        }
+
+        function updateTraffic() {
+            trafficParticles.forEach(truck => {
+                truck.position.x += truck.userData.speed * truck.userData.direction;
+
+                if (truck.position.x > 100) {
+                    truck.position.x = -100;
+                } else if (truck.position.x < -100) {
+                    truck.position.x = 100;
+                }
+            });
+        }
+
+        // Interaction
+        function onMouseMove(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            const tooltip = document.getElementById('tooltip');
+            if (intersects.length > 0 && intersects[0].object.userData.type) {
+                tooltip.style.display = 'block';
+                tooltip.style.left = event.clientX + 10 + 'px';
+                tooltip.style.top = event.clientY + 10 + 'px';
+                tooltip.textContent = intersects[0].object.userData.type;
+                document.body.style.cursor = 'pointer';
+            } else {
+                tooltip.style.display = 'none';
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        function onClick(event) {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                if (obj.userData.type) {
+                    selectedObject = obj;
+                    updateInfoPanel(obj.userData);
+
+                    // Highlight effect
+                    gsap.to(obj.scale, {
+                        x: 1.1,
+                        y: 1.1,
+                        z: 1.1,
+                        duration: 0.2,
+                        yoyo: true,
+                        repeat: 1
+                    });
+                }
+            }
+        }
+
+        function updateInfoPanel(data) {
+            document.getElementById('infoType').textContent = data.type || '-';
+            document.getElementById('infoStatus').textContent = data.status || '-';
+            document.getElementById('infoCapacity').textContent = data.capacity || '-';
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            controls.update();
+            updateTraffic();
+
+            // Rotate application layer spheres
+            layers.application.children.forEach(child => {
+                if (child.geometry && child.geometry.type === 'SphereGeometry') {
+                    child.rotation.y += 0.01;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // UI Controls
+        document.querySelectorAll('.layer-btn[data-layer]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const layerName = this.dataset.layer;
+                const layer = layers[layerName];
+
+                if (this.classList.contains('active')) {
+                    this.classList.remove('active');
+                    layer.visible = false;
+                } else {
+                    this.classList.add('active');
+                    layer.visible = true;
+                }
+            });
+        });
+
+        document.getElementById('resetView').addEventListener('click', () => {
+            gsap.to(camera.position, {
+                x: 80,
+                y: 60,
+                z: 80,
+                duration: 1.5,
+                ease: "power2.inOut"
+            });
+            controls.target.set(0, 0, 0);
+        });
+
+        document.getElementById('toggleDayNight').addEventListener('click', () => {
+            isNight = !isNight;
+            const nightLight = scene.getObjectByName('nightLight');
+
+            if (isNight) {
+                scene.background = new THREE.Color(0x020617);
+                scene.fog.color.set(0x020617);
+                nightLight.intensity = 2;
+                document.getElementById('toggleDayNight').textContent = 'Gündüz rejimi';
+            } else {
+                scene.background = new THREE.Color(0x0f172a);
+                scene.fog.color.set(0x0f172a);
+                nightLight.intensity = 0;
+                document.getElementById('toggleDayNight').textContent = 'Gecə rejimi';
+            }
+        });
+
+        document.getElementById('toggleTraffic').addEventListener('click', () => {
+            if (trafficParticles.length === 0) {
+                createTraffic();
+                document.getElementById('toggleTraffic').textContent = 'Yük Axını: Açıq';
+            } else {
+                trafficParticles.forEach(p => scene.remove(p));
+                trafficParticles = [];
+                document.getElementById('toggleTraffic').textContent = 'Yük Axını: Bağlı';
+            }
+        });
+
+        document.getElementById('simulateTraffic').addEventListener('click', () => {
+            document.getElementById('toggleTraffic').click();
+        });
+
+        document.getElementById('optimizeRoute').addEventListener('click', () => {
+            // Show optimization animation
+            gsap.to(camera.position, {
+                x: 0,
+                y: 100,
+                z: 0,
+                duration: 2,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    alert('Marşrut optimallaşdırma alqoritmi işə salındı!\n\nƏn səmərəli marşrut hesablanır...\n\nNəticə: Mərkəzi anbar üzərindən dairəvi marşrut %23 vaxt qənaəti təmin edir.');
+                }
+            });
+        });
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
